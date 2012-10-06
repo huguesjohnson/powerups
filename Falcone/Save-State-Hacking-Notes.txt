@@ -1,0 +1,145 @@
+Order of the Griffon
+MagicEngine Save State Hacking Notes
+created by Hugues Johnson (http://HuguesJohnson.com/)
+--------------------------------------------------------
+
+
+Initial Party
+--------------------------
+STR	INT	WIS	DEX	CON	CHA	HP	EXP
+18 	10 	11 	14 	17 	15 	10 	500
+9	16	17	13	18	8	9	500
+17	18	11	15	16	16	6	500
+12	18	11	13	9	10	3	500
+200 gold
+
+
+Stats.. hmm, not sure how they're stored, hope character stats aren't hard-coded
+
+Hit Points, easy enough
+B667 = Character 1 current HP
+B668 = Character 1 max HP
+B6A1 = Character 2 current HP
+B6A2 = Character 2 max HP
+B6DB = Character 3 current HP
+B6DC = Character 3 max HP
+B715 = Character 4 current HP
+B716 = Character 4 max HP
+Does that all check out (i.e. do characters with spells have larger data block?)
+Character 1->Character 2 = 3A
+Character 2->Character 3 = 3A
+Character 3->Character 4 = 3A
+Alright, HP will be easy to edit
+
+
+Inventory
+---------
+Let's put all items in inventory and do before/after comparision of save states
+Items in inventory:
+ 1-Sword 2-Short Sword 3-Sword 4-Mace 5-Sword 6-Leather Armor
+Looks like it starts at B5CE -- 24 slots total
+So inventory will be easy too
+Between HP and inventory that should be good enough for a save state editor
+
+Item codes
+----------
+[00] = Empty
+[01] = Short Sword
+[02] = Short Sword +1
+[03] = Short Sword +2
+[04] = Short Sword +3
+[05] = Axe
+[06] = Axe +1
+[07] = Axe +2
+[08] = Dagger
+[09] = Dagger +1
+[0A] = Dagger +2
+[0B] = Staff
+[0C] = Staff of Healing
+[0D] = Staff of Striking
+[0E] = Mace
+[0F] = Mace +1
+[10] = Mace +2
+[11] = Mace +3
+[12] = Sword
+[13] = Sword +1
+[14] = Sword +2
+[15] = Sword +3
+[16] = Spear
+[17] = Spear +1
+[18] = Spear +2
+[19] = Spear +3
+[1A] = Sword +1, vs Drain +3
+[1B] = Sword +1, vs Spells+2
+[1C] = Sword +1, vs Undead+2
+[1D] = Sword +1, vs Dragons+3
+[1E] = Sling
+[1F] = Sling +1
+[20] = Dart
+[21] = Dart +1
+[22] = Dart +2
+[23] = Bow
+[24] = Bow +1
+[45] = Shield
+[46] = Shield +1
+[47] = Shield +2
+[48] = Shield +3
+[49] = Leather Armor
+[4A] = Leather Armor +1
+[4B] = Leather Armor +2
+[4C] = Leather Armor +3
+[4D] = Chain Mail Armor
+[4E] = Chain Mail Armor +1
+[4F] = Chain Mail Armor +2
+[50] = Chain Mail Armor +3
+[51] = Plate Mail Armor
+[52] = Plate Mail Armor +1
+[53] = Plate Mail Armor +2
+[54] = Plate Mail Armor +3
+[58] = Displacer Cloak
+[59] = Girdle of Giant Strength
+[5A] = Gauntlets of Ogre
+[5B] = Boots of Speed
+[5E] = Potion of Healing
+[5F] = Potion of Extra Healing
+[60] = Potion of Fire Resistance
+[61] = Potion of Invulnerability
+[62] = Wand of Cold
+[63] = Wand of Fireballs
+[64] = Wand of Lightning
+[65] = Rod of Resurrection
+[66] = Ring of Fire Resistance
+[67] = Ring of Protection +1
+[68] = Ring of Regenerate
+[69] = Scroll of Magic Missile
+[6A] = Scroll of Prot from Evil
+[6B] = Scroll of Shield
+[6C] = Scroll of Sleep
+[6D] = Scroll of Charm
+[6E] = Scroll of Invisibility
+[6F] = Scroll of Web
+[70] = Scroll of Dispel Magic
+[71] = Scroll of Fireball
+[72] = Scroll of Lightning
+[73] = Scroll of Protection from Evil 10ft
+[74] = Scroll of Protection from Missiles
+[75] = Scroll of Hold
+[76] = Scroll of Confusion
+[77] = Scroll of Ice Storm
+[78] = Scroll of Charm Monsters
+[79] = Scroll of Dimension Door
+[7A] = Scroll of Curse
+
+
+
+
+
+
+
+
+
+
+
+
+
+
