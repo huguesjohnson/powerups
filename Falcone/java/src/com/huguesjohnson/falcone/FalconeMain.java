@@ -118,7 +118,7 @@ public class FalconeMain extends JFrame{
         for(int i=0;i<8;i++){
         	hpFields[i]=new JTextField(5);
         	hpFields[i].setInputVerifier(hpVerifier);
-        	String labelText=((i%2==0)?"Char "+((i/2)+1)+" HP:":"Max HP:");
+        	String labelText=((i%2==0)?"Character "+((i/2)+1)+" current HP:":"Character "+((i/2)+1)+" max HP:");
         	hpPanel.add(new JLabel(labelText));
         	hpPanel.add(hpFields[i]);
     	}
