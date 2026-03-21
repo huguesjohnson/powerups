@@ -123,7 +123,6 @@ public class LuiseMain extends JFrame{
 		}    	
     }
     
-    
     private void addEvent(JPanel panel,String caption,String tag){
     	JCheckBox cb=new JCheckBox(caption);
     	panel.add(cb);

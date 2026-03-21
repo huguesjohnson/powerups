@@ -10,17 +10,23 @@ import java.awt.FlowLayout;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.GridLayout;
+import java.awt.Image;
 import java.awt.Insets;
+import java.awt.Taskbar;
+import java.awt.Toolkit;
+import java.awt.Taskbar.Feature;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.net.URL;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
 import javax.swing.BorderFactory;
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
@@ -42,11 +48,11 @@ import javax.swing.SwingUtilities;
  */
 public class HilaryMain extends JFrame{
 	private static final long serialVersionUID=666L;
-	private JPanel filePanel;// Section 1: File Path and Browse 
-	private JPanel selectorPanel;// Section 2: 7 ComboBoxes and Labels [cite: 48-59,62-63]
-	private JPanel sliderPanel;// Section 3: 19 Sliders and Labels [cite: 60,69-113]
-	private JPanel checkboxPanel;// Section 4: 27 Checkboxes [cite: 9-47]
-	private JPanel actionButtonPanel;// Section 5: Bottom Buttons [cite: 4-8]
+	private JPanel filePanel;//Section 1: File Path and Browse 
+	private JPanel selectorPanel;//Section 2: 7 ComboBoxes and Labels [cite: 48-59,62-63]
+	private JPanel sliderPanel;//Section 3: 19 Sliders and Labels [cite: 60,69-113]
+	private JPanel checkboxPanel;//Section 4: 27 Checkboxes [cite: 9-47]
+	private JPanel actionButtonPanel;//Section 5: Bottom Buttons [cite: 4-8]
 	private JTextField textFilePath;
 	private JButton btnBrowse;
 	private JTextField textBackupFile;
@@ -108,6 +114,7 @@ public class HilaryMain extends JFrame{
 	private JButton btnSave;
 	//Data handling
 	private List<CFGEntry> vehicles=new ArrayList<>();
+	private int lastVehicleIndex=-1;
 
 	public HilaryMain(){
 		setTitle("Hilary - handling.cfg Editor ");
@@ -117,6 +124,7 @@ public class HilaryMain extends JFrame{
 	}
 
 	private void initComponents(){
+    	this.attemptToSetIcon();
 		//use GridBagLayout to stack components vertically
 		setLayout(new GridBagLayout());
 		//general constraints for all panels
@@ -193,7 +201,7 @@ public class HilaryMain extends JFrame{
 	private void setupSelectorPanel(){
 		//using GridBagLayout for precise alignment of labels and combos
 		selectorPanel.setLayout(new GridBagLayout());
-		selectorPanel.setBorder(BorderFactory.createTitledBorder("Vehicle & Transmission"));
+		selectorPanel.setBorder(BorderFactory.createTitledBorder("Vehicle&Transmission"));
 		GridBagConstraints gbc=new GridBagConstraints();
 		gbc.insets=new Insets(4,8,4,8);
 		gbc.fill=GridBagConstraints.HORIZONTAL;
@@ -204,6 +212,24 @@ public class HilaryMain extends JFrame{
 		gbc.weightx=0;
 		selectorPanel.add(new JLabel("Select Vehicle:"),gbc);
 		comboSelectVehicle=new JComboBox<>();
+		comboSelectVehicle.addActionListener(e->{
+//		    //TODO 1. Save changes to the item we are navigating AWAY from 
+//		    // lastVehicleIndex needs to be a member variable in MainForm
+//		    if (lastVehicleIndex!=-1) {
+//		        updateLastItem(lastVehicleIndex);
+//		    }
+			//2. Get the newly selected vehicle index
+			int selectedIndex=comboSelectVehicle.getSelectedIndex();
+			if((selectedIndex>=0)&&(selectedIndex<vehicles.size())){
+				CFGEntry selectedCfg=vehicles.get(selectedIndex);
+				//3. Update internal tracking
+				lastVehicleIndex=selectedIndex;
+				//4. Update UI Components
+				updateSliders(selectedCfg);
+				updateComboBoxes(selectedCfg);
+				updateCheckBoxes(selectedCfg);
+		    }
+		});		
 		comboSelectVehicle.setBackground(new Color(224,224,224));
 		gbc.gridx=1;
 		gbc.weightx=1.0;
@@ -222,9 +248,157 @@ public class HilaryMain extends JFrame{
 				"Rear Lights:",comboRearLights=new JComboBox<>(new String[]{"0(Long)","1(Small)","2(Big)","3(Tall)"}));
 		// Set all to disabled initially,matching original Form_Load state 
 		disableAllSelectors();
+	}
+	
+	private void updateComboBoxes(CFGEntry cfg){
+		//Drive/Engine Type
+		setSelectedByLeadingChar(comboDriveType,cfg.driveType);
+		setSelectedByLeadingChar(comboEngineType,cfg.engineType);		
+		//Number of gears
+		setSelectedByLeadingChar(comboNumberOfGears,String.valueOf(cfg.numberOfGears));		
+		//ABS: 0 or 1 
+		setSelectedByLeadingChar(comboABS,String.valueOf(cfg.abs));
+	    //Lights
+		setSelectedByLeadingChar(comboFrontLights,String.valueOf(cfg.frontLights));
+		setSelectedByLeadingChar(comboRearLights,String.valueOf(cfg.rearLights));
+	}
+	
+	private void updateSliders(CFGEntry cfg){
+		//Mass [1.0 to 50000.0]
+		sliderMass.setValue((int)cfg.mass);
+		//Dimensions [0.0 > x > 20.0]
+		sliderDimensionsX.setValue((int)(cfg.dimX*10));
+		sliderDimensionsY.setValue((int)(cfg.dimY*10));
+		sliderDimensionsZ.setValue((int)(cfg.dimZ*10));
+		//Center of Mass: [-10.0 > x > 10.0] 
+		//VB6 used: (value + 10) * 10
+		sliderCenterOfMassX.setValue((int)((cfg.centerOfMassX+10)*10));
+		sliderCenterOfMassY.setValue((int)((cfg.centerOfMassY+10)*10));
+		sliderCenterOfMassZ.setValue((int)((cfg.centerOfMassZ+10)*10));
+		//Percent Submerged: [10 to 120]
+		sliderPercentSubmerged.setValue(cfg.percentSubmerged);	
+		//Traction Multiplier: [-4.0 to 4.0] scaled by 100
+		sliderTractionMultiplier.setValue((int)((cfg.tractionMultiplier+4)*100));
+		//Traction Loss: [0.0 to 25.0] scaled by 100 
+		sliderTractionLoss.setValue((int)(cfg.tractionLoss*100));
+		//Traction Bias: [0.0 to 1.0] scaled by 100
+		sliderTractionBias.setValue((int)(cfg.tractionBias*100));
+		//Max Velocity
+		sliderMaxVelocity.setValue((int)cfg.maxVelocity);
+		//Engine Acceleration: [0.1 to 50.0] scaled by 10
+		sliderEngineAcceleration.setValue((int)(cfg.engineAcceleration*10));	    
+		//Brake Deceleration: [0.1 to 20.0]
+		sliderBrakeDeceleration.setValue((int)(cfg.brakeDeceleration*10));
+		//Brake Bias: [0.0 to 1.0] scaled by 10
+		sliderBrakeBias.setValue((int)(cfg.brakeBias*10));
+		//Steering Lock: [10.0 to 40.0]
+		sliderSteeringLock.setValue((int)cfg.steeringLock);
+		//Seat Offset Distance: [0.1 to 2.0] scaled by 10
+		sliderSeatOffsetDistance.setValue((int)(cfg.seatOffset*10));
+		//Collision Damage Multiplier: [0.0 to 5.0] scaled by 10
+		sliderCollisionDamageMultiplier.setValue((int)(cfg.collisionDamage*10));
+		//Monetary Value: [1 to 110000]
+		sliderMonetaryValue.setValue(cfg.monetaryValue);
+	}
+
+	private void updateCheckBoxes(CFGEntry cfg){
+		//Reverse the flags string to match the VB6 parsing logic 
+		String flags=cfg.flags;
+		String flagsRev=new StringBuilder(flags).reverse().toString();
+		int len=flagsRev.length();
+		//Digit 1: 1G_BOOST (1), 2G_BOOST (2), REV_BONNET (4), HANGING_BOOT (8)
+		if(len>0){
+			int flag=Integer.parseInt(flagsRev.substring(0,1),16); //Hex to Int 
+			check1GBoost.setSelected((flag&HandlingConstants.G1_BOOST)!=0);
+			check2GBoost.setSelected((flag&HandlingConstants.G2_BOOST)!=0);
+			checkRevBonnet.setSelected((flag&HandlingConstants.REV_BONNET)!=0);
+			checkHangingBoot.setSelected((flag&HandlingConstants.HANGING_BOOT)!=0);
+	    }else{
+			check1GBoost.setSelected(false);
+			check2GBoost.setSelected(false);
+			checkRevBonnet.setSelected(false);
+			checkHangingBoot.setSelected(false);
+	    }
+		//Digit 2: NO_DOORS (1), IS_VAN (2), IS_BUS (4), IS_LOW (8)
+		if(len>1){
+			int flag=Integer.parseInt(flagsRev.substring(1,2),16);
+			checkNoDoors.setSelected((flag&HandlingConstants.NO_DOORS)!=0);
+			checkIsVan.setSelected((flag&HandlingConstants.IS_VAN)!=0);
+			checkIsBus.setSelected((flag&HandlingConstants.IS_BUS)!=0);
+			checkIsLow.setSelected((flag&HandlingConstants.IS_LOW)!=0);
+	    }else{
+			checkNoDoors.setSelected(false);
+			checkIsVan.setSelected(false);
+			checkIsBus.setSelected(false);
+			checkIsLow.setSelected(false);
+	    }
+	    //Digit 3: DBL_EXHAUST (1), TAILGATE_BOOT (2), NOSWING_BOOT (4), NONPLAYER_STABILISER (8)
+		if(len>2){
+			int flag=Integer.parseInt(flagsRev.substring(2,3),16);
+			checkDblExhaust.setSelected((flag&HandlingConstants.DBL_EXHAUST)!=0);
+			checkTailgateBoot.setSelected((flag&HandlingConstants.TAILGATE_BOOT)!=0);
+			checkNoSwingBoot.setSelected((flag&HandlingConstants.NOSWING_BOOT)!=0);
+			checkNonPlayerStabiliser.setSelected((flag&HandlingConstants.NONPLAYER_STABILISER)!=0);
+		}else{
+			checkDblExhaust.setSelected(false);
+			checkTailgateBoot.setSelected(false);
+			checkNoSwingBoot.setSelected(false);
+			checkNonPlayerStabiliser.setSelected(false);
+		}
+	    // Digit 4: NEUTRALHANDLING (1), HAS_NO_ROOF (2), IS_BIG (4), HALOGEN_LIGHTS (8)
+		if(len>3){
+			int flag=Integer.parseInt(flagsRev.substring(3,4),16);
+			checkNeutralHandling.setSelected((flag&HandlingConstants.NEUTRALHANDLING)!=0);
+			checkHasNoRoof.setSelected((flag&HandlingConstants.HAS_NO_ROOF)!=0);
+			checkIsBig.setSelected((flag&HandlingConstants.IS_BIG)!=0);
+			checkHalogenLights.setSelected((flag&HandlingConstants.HALOGEN_LIGHTS)!=0);
+		}else{
+			checkNeutralHandling.setSelected(false);
+			checkHasNoRoof.setSelected(false);
+			checkIsBig.setSelected(false);
+			checkHalogenLights.setSelected(false);
+		}
+	    //Digit 5: IS_BIKE (1), IS_HELI (2), IS_PLANE (4), IS_BOAT (8)
+		if(len>4){
+			int flag=Integer.parseInt(flagsRev.substring(4,5),16);
+			checkIsBike.setSelected((flag&HandlingConstants.IS_BIKE)!=0);
+			checkIsHeli.setSelected((flag&HandlingConstants.IS_HELI)!=0);
+			checkIsPlane.setSelected((flag&HandlingConstants.IS_PLANE)!=0);
+			checkIsBoat.setSelected((flag&HandlingConstants.IS_BOAT)!=0);
+	    }else{
+			checkIsBike.setSelected(false);
+			checkIsHeli.setSelected(false);
+			checkIsPlane.setSelected(false);
+			checkIsBoat.setSelected(false);
+	    }
+	    //Digit 6: NO_EXHAUST (1), REARWHEEL_1ST (2), HANDBRAKE_TYRE (4), SIT_IN_BOAT (8)
+		if(len>5){
+			int flag=Integer.parseInt(flagsRev.substring(5,6),16);
+			checkNoExhaust.setSelected((flag&HandlingConstants.NO_EXHAUST)!=0);
+			checkRearWheel1st.setSelected((flag&HandlingConstants.REARWHEEL_1ST)!=0);
+			checkHandbrakeTyre.setSelected((flag&HandlingConstants.HANDBRAKE_TYRE)!=0);
+			checkSitInBoat.setSelected((flag&HandlingConstants.SIT_IN_BOAT)!=0);
+		}else{
+			checkNoExhaust.setSelected(false);
+			checkRearWheel1st.setSelected(false);
+			checkHandbrakeTyre.setSelected(false);
+			checkSitInBoat.setSelected(false);
+		}
+	    // Digit 7: FAT_REARW (1), NARROW_FRONTW (2), GOOD_INSAND (4)
+	    if(len>6){
+	    	int flag=Integer.parseInt(flagsRev.substring(6,7),16);
+	    	checkFatRearW.setSelected((flag&HandlingConstants.FAT_REARW)!=0);
+	    	checkNarrowFrontW.setSelected((flag&HandlingConstants.NARROW_FRONTW)!=0);
+	    	checkGoodInSand.setSelected((flag&HandlingConstants.GOOD_INSAND)!=0);
+	    }else{
+	    	checkFatRearW.setSelected(false);
+	    	checkNarrowFrontW.setSelected(false);
+	    	checkGoodInSand.setSelected(false);
+	    }
 	}	
 	
 	//Helper to add two label-combo pairs in a single horizontal row
+	@SuppressWarnings("rawtypes")
 	private void addComboRow(int row,String label1,JComboBox cb1,String label2,JComboBox cb2){
 		GridBagConstraints gbc=new GridBagConstraints();
 		gbc.insets=new Insets(4,8,4,8);
@@ -258,42 +432,42 @@ public class HilaryMain extends JFrame{
 		JScrollPane scrollPane=new JScrollPane(innerPanel);
 		sliderPanel.setLayout(new BorderLayout());
 		sliderPanel.add(scrollPane,BorderLayout.CENTER);
-		sliderPanel.setBorder(BorderFactory.createTitledBorder("Vehicle Physical & Performance Properties"));
+		sliderPanel.setBorder(BorderFactory.createTitledBorder("Vehicle Physical&Performance Properties"));
 		int row=0;
-		//Row 0: Mass & Dimensions X 
+		//Row 0: Mass&Dimensions X 
 		addSliderPair(innerPanel,row++,
 					"Mass:",sliderMass=new JSlider(1,25500,1),1000,
 					"Dimensions.x:",sliderDimensionsX=new JSlider(0,200,0),10);
 		
-		//Row 1: Dimensions Y & Z
+		//Row 1: Dimensions Y&Z
 		addSliderPair(innerPanel,row++,
 					"Dimensions.y:",sliderDimensionsY=new JSlider(0,200,0),10,
 					"Dimensions.z:",sliderDimensionsZ=new JSlider(0,200,0),10);
-		//Row 2: CenterOfMass X & Y
+		//Row 2: CenterOfMass X&Y
 		addSliderPair(innerPanel,row++,
 					"CenterOfMass.x:",sliderCenterOfMassX=new JSlider(0,200,0),10,
 					"CenterOfMass.y:",sliderCenterOfMassY=new JSlider(0,200,0),10);
-		//Row 3: CenterOfMass Z & Percent Submerged
+		//Row 3: CenterOfMass Z&Percent Submerged
 		addSliderPair(innerPanel,row++,
 					"CenterOfMass.z:",sliderCenterOfMassZ=new JSlider(0,200,0),10,
 					"Percent Submerged:",sliderPercentSubmerged=new JSlider(5,120,5),10);
-		// Row 4: Multiplier Mult & Loss
+		// Row 4: Multiplier Mult&Loss
 		addSliderPair(innerPanel,row++,
 					"Traction Multiplier:",sliderTractionMultiplier=new JSlider(0,800,0),50,
 					"Traction Loss:",sliderTractionLoss=new JSlider(0,2500,0),500);
-		//Row 5: Traction Bias & Max Velocity
+		//Row 5: Traction Bias&Max Velocity
 		addSliderPair(innerPanel,row++,
 					"Traction Bias:",sliderTractionBias=new JSlider(0,100,0),10,
 					"Maximum Velocity:",sliderMaxVelocity=new JSlider(50,1500,50),50);
-		//Row 6: Engine Acceleration & Brake Deceleration
+		//Row 6: Engine Acceleration&Brake Deceleration
 		addSliderPair(innerPanel,row++,
 					"Engine Acceleration:",sliderEngineAcceleration=new JSlider(1,500,1),50,
 					"Brake Deceleration:",sliderBrakeDeceleration=new JSlider(0,200,1),10);
-		// Row 7: Brake Bias & Steering Lock
+		// Row 7: Brake Bias&Steering Lock
 		addSliderPair(innerPanel,row++,
 					"Brake Bias:",sliderBrakeBias=new JSlider(0,100,0),10,
 					"Steering Lock:",sliderSteeringLock=new JSlider(10,40,10),10);
-		//Row 8: Monetary Value & Collision Damage
+		//Row 8: Monetary Value&Collision Damage
 		addSliderPair(innerPanel,row++,
 					"Monetary Value:",sliderMonetaryValue=new JSlider(1,110000,1),10000,
 					"Collision Damage Mult:",sliderCollisionDamageMultiplier=new JSlider(0,50,0),5);
@@ -303,7 +477,6 @@ public class HilaryMain extends JFrame{
 					"",new JLabel(""),0);// Empty cell to maintain grid alignment	}	
 	}
 	
-
 	//creates a row with: Label,Slider,Label,Slider 
 	private void addSliderPair(JPanel p,int row,String lbl1,JComponent comp1,int tick1,String lbl2,JComponent comp2,int tick2){
 		GridBagConstraints c=new GridBagConstraints();
@@ -473,6 +646,47 @@ public class HilaryMain extends JFrame{
 		btnEditSuspension.setEnabled(enabled);
 		//TODO: You would loop through your panels or specific components here [cite: 173-174]
 	}	
+	
+    //TODO - put this somewhere reusable by all the swing apps I have
+    private void attemptToSetIcon(){
+    	try{
+    		URL iconURL=this.getClass().getResource("/com/huguesjohnson/hilary/icon.png");
+    		if(iconURL!=null){
+    			this.setIconImage(new ImageIcon(iconURL).getImage());
+			}else{
+				iconURL=this.getClass().getResource("icon.png");
+	    		if(iconURL!=null){
+	    			this.setIconImage(new ImageIcon(iconURL).getImage());
+	    		}else{
+	    			/* give up out of despair */
+	    		}
+			}
+    		if(iconURL!=null){//if that failed then this next one will fail too
+            	if(Taskbar.isTaskbarSupported()){
+            		Taskbar taskbar=Taskbar.getTaskbar();
+            		if(taskbar.isSupported(Feature.ICON_IMAGE)){
+                        Toolkit defaultToolkit=Toolkit.getDefaultToolkit();
+                        //of course this is different than setting the icon,of course it is
+                        Image icon=defaultToolkit.getImage(getClass().getResource("/com/huguesjohnson/hilary/icon.png"));
+                        if(icon!=null){
+                            taskbar.setIconImage(icon);
+                        }else{
+                            icon=defaultToolkit.getImage(getClass().getResource("icon.png"));
+                            if(icon!=null){
+                                taskbar.setIconImage(icon);
+            	    		}else{
+            	    			/* give up out of despair */
+            	    		}                       	
+                        }
+        			}
+            	}        	
+    		}
+		}catch(Exception x){ 
+			/* this is something that should be extremely simple to do and never fail
+			 * yet it is something that always fails in either local development or distribution 
+			 * setting an icon is a super basic thing that should "just work" */ 
+		}    	
+    }	
 	
 	public static void main(String[] args){
 		SwingUtilities.invokeLater(() -> new HilaryMain().setVisible(true));
