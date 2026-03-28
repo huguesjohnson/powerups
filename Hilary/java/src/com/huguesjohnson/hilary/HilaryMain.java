@@ -213,11 +213,10 @@ public class HilaryMain extends JFrame{
 		selectorPanel.add(new JLabel("Select Vehicle:"),gbc);
 		comboSelectVehicle=new JComboBox<>();
 		comboSelectVehicle.addActionListener(e->{
-//		    //TODO 1. Save changes to the item we are navigating AWAY from 
-//		    // lastVehicleIndex needs to be a member variable in MainForm
-//		    if (lastVehicleIndex!=-1) {
-//		        updateLastItem(lastVehicleIndex);
-//		    }
+			//Save changes to the item we are navigating AWAY from 
+			if(lastVehicleIndex!=-1){
+		        updateLastItem(lastVehicleIndex);
+			}
 			//2. Get the newly selected vehicle index
 			int selectedIndex=comboSelectVehicle.getSelectedIndex();
 			if((selectedIndex>=0)&&(selectedIndex<vehicles.size())){
@@ -308,7 +307,7 @@ public class HilaryMain extends JFrame{
 		int len=flagsRev.length();
 		//Digit 1: 1G_BOOST (1), 2G_BOOST (2), REV_BONNET (4), HANGING_BOOT (8)
 		if(len>0){
-			int flag=Integer.parseInt(flagsRev.substring(0,1),16); //Hex to Int 
+			int flag=Integer.parseInt(flagsRev.substring(0,1),16);
 			check1GBoost.setSelected((flag&HandlingConstants.G1_BOOST)!=0);
 			check2GBoost.setSelected((flag&HandlingConstants.G2_BOOST)!=0);
 			checkRevBonnet.setSelected((flag&HandlingConstants.REV_BONNET)!=0);
@@ -395,7 +394,108 @@ public class HilaryMain extends JFrame{
 	    	checkNarrowFrontW.setSelected(false);
 	    	checkGoodInSand.setSelected(false);
 	    }
-	}	
+	}
+	
+	private void updateLastItem(int index){
+		if((index<0)||(index>=vehicles.size())){return;}
+		CFGEntry cfg=vehicles.get(index);
+		readSliders(cfg);
+		readComboBoxes(cfg);
+		readCheckboxes(cfg);
+	    
+//TODO - not sure how I want to handle the dirty indicator this time around
+	    //cfg.ZZZ_Dirty = true; // Mark as changed for the file-saver [cite: 212, 228]
+	}
+	
+	private void readSliders(CFGEntry cfg){
+		cfg.mass=sliderMass.getValue();
+		cfg.dimX=sliderDimensionsX.getValue()/10.0;
+		cfg.dimY=sliderDimensionsY.getValue()/10.0;
+		cfg.dimZ=sliderDimensionsZ.getValue()/10.0;
+		cfg.centerOfMassX=(sliderCenterOfMassX.getValue()/10.0)-10.0;
+		cfg.centerOfMassY=(sliderCenterOfMassY.getValue()/10.0)-10.0;
+		cfg.centerOfMassZ=(sliderCenterOfMassZ.getValue()/10.0)-10.0;
+		cfg.percentSubmerged=sliderPercentSubmerged.getValue();
+		cfg.tractionMultiplier=(sliderTractionMultiplier.getValue()/100.0)-4.0;
+		cfg.tractionLoss=sliderTractionLoss.getValue()/100.0;
+		cfg.tractionBias=sliderTractionBias.getValue()/100.0;
+		cfg.maxVelocity=sliderMaxVelocity.getValue();
+		cfg.engineAcceleration=sliderEngineAcceleration.getValue()/10.0;
+		cfg.brakeDeceleration=sliderBrakeDeceleration.getValue()/10.0;
+		cfg.brakeBias=sliderBrakeBias.getValue()/10.0;
+		cfg.steeringLock=sliderSteeringLock.getValue();
+		cfg.seatOffset=sliderSeatOffsetDistance.getValue()/10.0;
+		cfg.collisionDamage=sliderCollisionDamageMultiplier.getValue()/10.0;
+		cfg.monetaryValue=sliderMonetaryValue.getValue();
+	}
+	
+	private void readComboBoxes(CFGEntry cfg){
+		cfg.numberOfGears=Integer.parseInt(getLeadingChar(comboNumberOfGears));
+		cfg.driveType=getLeadingChar(comboDriveType);
+		cfg.engineType=getLeadingChar(comboEngineType);
+		cfg.abs=Integer.parseInt(getLeadingChar(comboABS));
+		cfg.frontLights=Integer.parseInt(getLeadingChar(comboFrontLights));
+		cfg.rearLights=Integer.parseInt(getLeadingChar(comboRearLights));
+	}
+
+	private String getLeadingChar(JComboBox<String> cb){
+		String selected=(String)cb.getSelectedItem();
+		return(selected!=null)?selected.substring(0, 1):"0";
+	}
+	
+	private void readCheckboxes(CFGEntry cfg){
+		StringBuilder flags=new StringBuilder();
+	    //Digit 7
+		int d7=0;
+		if(checkFatRearW.isSelected()){d7|=HandlingConstants.FAT_REARW;}
+		if(checkNarrowFrontW.isSelected()){d7|= HandlingConstants.NARROW_FRONTW;}
+		if(checkGoodInSand.isSelected()){d7|=HandlingConstants.GOOD_INSAND;}
+	    flags.append(Integer.toHexString(d7));
+	    //Digit 6
+	    int d6=0;
+	    if(checkNoExhaust.isSelected()){d6|=HandlingConstants.NO_EXHAUST;}
+	    if(checkRearWheel1st.isSelected()){d6|=HandlingConstants.REARWHEEL_1ST;}
+	    if(checkHandbrakeTyre.isSelected()){d6|= HandlingConstants.HANDBRAKE_TYRE;}
+	    if(checkSitInBoat.isSelected()){d6|=HandlingConstants.SIT_IN_BOAT;}
+	    flags.append(Integer.toHexString(d6));
+	    //Digit 5
+	    int d5=0;
+	    if(checkIsBike.isSelected()){d5|=HandlingConstants.IS_BIKE;}
+	    if(checkIsHeli.isSelected()){d5|=HandlingConstants.IS_HELI;}
+	    if(checkIsPlane.isSelected()){d5|= HandlingConstants.IS_PLANE;}
+	    if(checkIsBoat.isSelected()){d5|=HandlingConstants.IS_BOAT;}
+	    flags.append(Integer.toHexString(d5));
+	    //Digit 4
+	    int d4=0;
+	    if(checkNeutralHandling.isSelected()){d4|=HandlingConstants.NEUTRALHANDLING;}
+	    if(checkHasNoRoof.isSelected()){d4|=HandlingConstants.HAS_NO_ROOF;}
+	    if(checkIsBig.isSelected()){d4|= HandlingConstants.IS_BIG;}
+	    if(checkHalogenLights.isSelected()){d4|=HandlingConstants.HALOGEN_LIGHTS;}
+	    flags.append(Integer.toHexString(d4));
+	    //Digit 3
+	    int d3=0;
+	    if(checkDblExhaust.isSelected()){d3|=HandlingConstants.DBL_EXHAUST;}
+	    if(checkTailgateBoot.isSelected()){d3|=HandlingConstants.TAILGATE_BOOT;}
+	    if(checkNoSwingBoot.isSelected()){d3|= HandlingConstants.NOSWING_BOOT;}
+	    if(checkNonPlayerStabiliser.isSelected()){d3|=HandlingConstants.NONPLAYER_STABILISER;}
+	    flags.append(Integer.toHexString(d3));
+	    //Digit 2
+	    int d2=0;
+	    if(checkNoDoors.isSelected()){d2|=HandlingConstants.NO_DOORS;}
+	    if(checkIsVan.isSelected()){d2|=HandlingConstants.IS_VAN;}
+	    if(checkIsBus.isSelected()){d2|= HandlingConstants.IS_BUS;}
+	    if(checkIsLow.isSelected()){d2|=HandlingConstants.IS_LOW;}
+	    flags.append(Integer.toHexString(d2));
+	    //Digit 1
+	    int d1=0;
+	    if(check1GBoost.isSelected()){d1|=HandlingConstants.G1_BOOST;}
+	    if(check2GBoost.isSelected()){d1|=HandlingConstants.G2_BOOST;}
+	    if(checkRevBonnet.isSelected()){d1|=HandlingConstants.REV_BONNET;}
+	    if(checkHangingBoot.isSelected()){d1|=HandlingConstants.HANGING_BOOT;}
+	    flags.append(Integer.toHexString(d1));
+	    //Build the string from Digit 7 down to Digit 1 
+	    cfg.flags=flags.toString().toUpperCase();
+	}
 	
 	//Helper to add two label-combo pairs in a single horizontal row
 	@SuppressWarnings("rawtypes")
@@ -579,6 +679,29 @@ public class HilaryMain extends JFrame{
 		actionButtonPanel.setBorder(BorderFactory.createMatteBorder(1,0,0,0,Color.GRAY));
 		//"Edit Suspension" Button
 		btnEditSuspension=new JButton("Edit Suspension");
+		//setup action listener
+		btnEditSuspension.addActionListener(e->{
+			int selectedIndex=comboSelectVehicle.getSelectedIndex();
+			if(selectedIndex<0){return;}
+			if(selectedIndex>=vehicles.size()){return;}
+			//1.Get the current vehicle data 
+			CFGEntry cfg=vehicles.get(selectedIndex);
+		    //2.Initialize the Dialog - Passing 'this' makes it a child of MainForm 
+			SuspensionDialog susDialog=new SuspensionDialog(this,cfg);
+			//3.Display the dialog 
+			susDialog.setVisible(true); 
+			//4. After the dialog is closed, check if the user clicked "Save"
+			if(!susDialog.isCancelled()){
+				//Pull back the updated values from the dialog's sliders 
+				cfg.suspensionForce=susDialog.forceSlider.getValue()/10.0;
+				cfg.suspensionDamping=susDialog.dampingSlider.getValue()/10.0;
+				cfg.suspensionUpper=susDialog.upperSlider.getValue()/10.0;
+				cfg.suspensionLower=susDialog.lowerSlider.getValue()/10.0;
+				cfg.suspensionBias=susDialog.biasSlider.getValue()/10.0;
+				cfg.antiDive=susDialog.antiDiveSlider.getValue()/10.0;
+				cfg.isDirty=true;
+			}
+		});
 		btnEditSuspension.setEnabled(false); //disabled until file load
 		actionButtonPanel.add(btnEditSuspension);
 		//"Cancel All Changes and Close" Button
@@ -644,7 +767,7 @@ public class HilaryMain extends JFrame{
 	private void enableUIComponents(boolean enabled){
 		comboSelectVehicle.setEnabled(enabled);
 		btnEditSuspension.setEnabled(enabled);
-		//TODO: You would loop through your panels or specific components here [cite: 173-174]
+		//TODO: enable anything else here
 	}	
 	
     //TODO - put this somewhere reusable by all the swing apps I have
